@@ -6,7 +6,10 @@ use Wee;
 
 get '/', 'hi there';
 
-get '/env', { env.perl };
+get '/env', {
+    content_type 'text/plain';
+    env.perl
+};
 
 get '/index.html', { render 'index.html' };
 

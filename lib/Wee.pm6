@@ -1,64 +1,14 @@
 module Wee;
 
+use Wee::Template;
+
 my %APP;
 init;
 
 sub init () is export {
     %APP = ();
-}
 
-grammar Template {
-    regex TOP {
-        ^ <chunk>* <leftover> $
-    }
-    regex chunk      { <text> [ <inline> | <line> ] }
-    regex text       { .*?}
-    regex code       { <mode> \h* (.*?)}
-    regex line       { ^^ <line_start> <code> \s* [ \n | $ ] }
-    regex inline     { <start> <code> \s* <end> }
-    token line_start { '%' }
-    token start      { '<%' }
-    token end        { '%>' }
-    token mode       { \= ** 0..2 }
-    regex leftover   { .* }
-}
-
-class Template::Actions {
-    method TOP($/) {
-        my $code = 'sub (%vars) {my $_T;';
-
-        my @chunks;
-        for $<chunk>.list -> $c {
-            @chunks.push($c.ast);
-        }
-
-        $code ~= join ';', @chunks, $<leftover>.ast;
-        $code ~= '$_T;}';
-
-        make $code;
-    }
-    method chunk($/) {
-        my @v = $<text>.ast;
-        @v.push($<inline>.ast) if $<inline>;
-        @v.push($<line>.ast) if $<line>;
-
-        make join ';', @v;
-    }
-    method text($/) { make '$_T ~= q{' ~ $/ ~ '}'; }
-    method inline($/) { make $<code>.ast}
-    method line($/) { make $<code>.ast}
-    method code($/) {
-        given ($<mode>) {
-            when '' { make $0 }
-            when .chars == 2 { make '$_T ~= ' ~ $0 ~ '' }
-            default { make '$_T ~= %vars<html_escape>.(' ~ $0 ~ ')' }
-        }
-    }
-    method start($/) { make ~$/}
-    method line_start($/) { make ~$/}
-    method end($/) { }
-    method mode($/) { make ~$/}
-    method leftover($/) { make '$_T ~= q{' ~ $/ ~ '};'; }
+    %APP<template> = Wee::Template.new;
 }
 
 sub include_templates ($templates) is export {
@@ -105,20 +55,11 @@ sub render ($name, *%vars) is export {
     my $template = $name ~~ Capture ?? ~$name !! %APP<includes>{$name}
       or die "Template not found";
 
-    my $ref = $template ~~ Callable ?? $template !! compile_template($template);
+    my $ref = $template ~~ Callable ?? $template !! %APP<template>.compile($template);
     %APP<includes>{$name} = $ref unless $ref ~~ \Str;
 
     %vars<html_escape> //= &html_escape;
     return $ref.(%vars);
-}
-
-sub compile_template ($template) {
-    my $match = Template.parse($template, :actions(Template::Actions));
-    die 'Cannot parse template' unless $match;
-
-    my $code = $match.ast;
-
-    return EVAL $code or die $_;
 }
 
 sub to_app is export {
@@ -131,12 +72,17 @@ sub to_app is export {
               unless (my $m = %APP<routes>{$method})
               && (my $c = $m{$path_info});
 
+            %env<wee> = {};
+
             sub env is export { %env }
+            sub content_type (Str $content_type) is export {
+                %env<wee><content_type> = $content_type;
+            }
 
             my $res = $c();
             return $res if $res ~~ Array;
 
-            return [200, ['Content-Type' => 'text/html; charset=utf-8'], [$res]];
+            return [200, ['Content-Type' => %env<wee><content_type> || 'text/html; charset=utf-8'], [$res]];
 
             CATCH {
                 warn "System error: $_";
