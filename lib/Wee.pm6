@@ -28,15 +28,6 @@ sub route ($method, $path, $handler) {
 sub get  (|args) is export { route('GET',  |args) }
 sub post (|args) is export { route('POST', |args) }
 
-sub http_error ($message, $code = 500) is export {
-    my $output = $message;
-    try {
-        $output = render($code, code => $code, message => $message);
-    }
-
-    return [$code, [], [$output]];
-}
-
 sub redirect ($url, $code = 302) is export {
     return [$code, [Location => $url], ['']];
 }
@@ -51,21 +42,34 @@ sub html_escape ($input is copy) is export {
         ;
 }
 
-sub render ($name, *%vars) is export {
-    my $template = $name ~~ Capture ?? ~$name !! %APP<includes>{$name}
-      or die "Template not found";
-
-    my $ref = $template ~~ Callable ?? $template !! %APP<template>.compile($template);
-    %APP<includes>{$name} = $ref unless $ref ~~ \Str;
-
-    %vars<html_escape> //= &html_escape;
-    return $ref.(%vars);
-}
-
 sub to_app is export {
     sub (%env) {
         my $path_info = %env<PATH_INFO>      || '/';
         my $method    = %env<REQUEST_METHOD> || 'GET';
+
+        sub env is export { %env }
+        sub content_type (Str $content_type) is export {
+            %env<wee><content_type> = $content_type;
+        }
+        sub render ($name, *%vars) is export {
+            my $template = $name ~~ Capture ?? ~$name !! %APP<includes>{$name}
+              or die "Template not found";
+
+            my $ref = $template ~~ Callable ?? $template !! %APP<template>.compile($template);
+            %APP<includes>{$name} = $ref unless $ref ~~ \Str;
+
+            %vars<html_escape> //= &html_escape;
+            %vars<env> //= %env;
+            return $ref.(%vars);
+        }
+        sub http_error ($message, $code = 500) is export {
+            my $output = $message;
+            try {
+                $output = render($code, code => $code, message => $message);
+            }
+
+            return [$code, [], [$output]];
+        }
 
         try {
             return http_error 'Not found', 404
@@ -73,11 +77,6 @@ sub to_app is export {
               && (my $c = $m{$path_info});
 
             %env<wee> = {};
-
-            sub env is export { %env }
-            sub content_type (Str $content_type) is export {
-                %env<wee><content_type> = $content_type;
-            }
 
             my $res = $c();
             return $res if $res ~~ Array;

@@ -42,7 +42,7 @@ include_templates q:to/END/;
 </form>
 
 @@ 500
-Error <%= $vars{message} %>.
+Error <%= %vars<code> ~ ': ' ~ %vars<message> %>.
 
 @@ 404
 OOOOOPS!
