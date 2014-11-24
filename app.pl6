@@ -21,13 +21,6 @@ post '/form', {
     'Submitted. Good bye';
 };
 
-my $app = to_app;
-
-use HTTP::Easy::PSGI;
-my $http = HTTP::Easy::PSGI.new(:port(8080));
-
-$http.handle($app);
-
 # Until =begin DATA is implemented
 include_templates q:to/END/;
 @@ index.html
@@ -49,3 +42,10 @@ Error <%= $vars{message} %>.
 @@ 404
 OOOOOPS!
 END
+
+my $app = to_app;
+
+use HTTP::Easy::PSGI;
+my $http = HTTP::Easy::PSGI.new(:port(8080));
+
+$http.handle($app);
