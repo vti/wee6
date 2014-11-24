@@ -1,10 +1,5 @@
 module Wee;
 
-#warn callframe(1).perl;
-
-#warn $?FILE;
-#warn $*PROGRAM_NAME.path.IO.slurp;
-
 my %APP;
 init;
 

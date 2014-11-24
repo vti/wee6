@@ -1,0 +1,8 @@
+{
+    "name" : "Wee",
+    "version" : "0.1.0",
+    "description" : "Web framework.",
+    "author" : "vti",
+    "depends" : [ ],
+    "source-url" : "git://github.com/vti/wee6.git"
+}
