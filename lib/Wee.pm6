@@ -131,6 +131,8 @@ sub to_app is export {
               unless (my $m = %APP<routes>{$method})
               && (my $c = $m{$path_info});
 
+            sub env is export { %env }
+
             my $res = $c();
             return $res if $res ~~ Array;
 

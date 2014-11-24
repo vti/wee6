@@ -4,11 +4,15 @@ Wee6
 The Perl6 PSGI-like framework.
 
 ```perl
+use v6;
+
 use lib 'lib';
 
 use Wee;
 
 get '/', 'hi there';
+
+get '/env', { env.perl };
 
 get '/index.html', { render 'index.html' };
 
@@ -24,13 +28,6 @@ get '/form', { render 'form.html' };
 post '/form', {
     'Submitted. Good bye';
 };
-
-my $app = to_app;
-
-use HTTP::Easy::PSGI;
-my $http = HTTP::Easy::PSGI.new(:port(8080));
-
-$http.handle($app);
 
 # Until =begin DATA is implemented
 include_templates q:to/END/;
@@ -53,4 +50,11 @@ Error <%= $vars{message} %>.
 @@ 404
 OOOOOPS!
 END
+
+my $app = to_app;
+
+use HTTP::Easy::PSGI;
+my $http = HTTP::Easy::PSGI.new(:port(8080));
+
+$http.handle($app);
 ```

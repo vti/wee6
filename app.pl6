@@ -6,6 +6,8 @@ use Wee;
 
 get '/', 'hi there';
 
+get '/env', { env.perl };
+
 get '/index.html', { render 'index.html' };
 
 get '/raw', [200, [], ['Raw response']];
