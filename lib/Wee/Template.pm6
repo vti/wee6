@@ -27,6 +27,7 @@ class Wee::Template::Actions {
 
         $code ~= join ';', @chunks, $<leftover>.ast;
         $code ~= '$_T;}';
+        #warn $code;
 
         make $code;
     }

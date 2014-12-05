@@ -1,5 +1,6 @@
 module Wee;
 
+use Wee::Routes;
 use Wee::Template;
 
 my %APP;
@@ -8,6 +9,7 @@ init;
 sub init () is export {
     %APP = ();
 
+    %APP<routes> = Wee::Routes.new;
     %APP<template> = Wee::Template.new;
 }
 
@@ -19,10 +21,14 @@ sub include_templates ($templates) is export {
     }
 }
 
-sub route ($method, $path, $handler) {
+multi sub route ($method, $path, $handler) {
     my $ref = $handler ~~ Callable ?? $handler !! sub { $handler };
 
-    %APP<routes>{$method}{$path} = $ref;
+    %APP<routes>.add($path, :method($method), :cb($ref));
+}
+
+multi sub route ($method, Pair $pair) {
+    route($method, $pair.key, $pair.value);
 }
 
 sub get  (|args) is export { route('GET',  |args) }
@@ -72,14 +78,14 @@ sub to_app is export {
         }
 
         try {
+            my $match = %APP<routes>.match($path_info, :$method);
             return http_error 'Not found', 404
-              unless (my $m = %APP<routes>{$method})
-              && (my $c = $m{$path_info});
+              unless $match;
+
+            my $res = $match.args<cb>();
+            return $res if $res ~~ Array;
 
             %env<wee> = {};
-
-            my $res = $c();
-            return $res if $res ~~ Array;
 
             return [200, ['Content-Type' => %env<wee><content_type> || 'text/html; charset=utf-8'], [$res]];
 

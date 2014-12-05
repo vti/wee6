@@ -4,25 +4,29 @@ use lib 'lib';
 
 use Wee;
 
-get '/', 'hi there';
+post '/' => 'hi there';
 
-get '/env', {
+get '/env' => {
     content_type 'text/plain';
     env.perl
 };
 
-get '/index.html', { render 'index.html' };
+get '/template' => { render 'index.html' };
 
-get '/raw', [200, [], ['Raw response']];
+get '/raw' => [200, [], ['Raw response']];
 
-get '/500', { die 'here' };
+get '/500' => { die 'here' };
 
-get '/file', slurp $?FILE;
+get '/file' => {
+    content_type 'text/plain; charset=utf-8';
 
-get '/redirect', redirect '/';
+    slurp $?FILE
+};
 
-get '/form', { render 'form.html' };
-post '/form', {
+get '/redirect' => redirect '/';
+
+get '/form' => { render 'form.html' };
+post '/form' => {
     'Submitted. Good bye';
 };
 
@@ -45,7 +49,7 @@ include_templates q:to/END/;
 Error <%= %vars<code> ~ ': ' ~ %vars<message> %>.
 
 @@ 404
-OOOOOPS!
+Not found!
 END
 
 my $app = to_app;
